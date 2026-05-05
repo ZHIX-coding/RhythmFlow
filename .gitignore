@@ -1,0 +1,33 @@
+# 编译输出与中间文件
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio 用户/缓存文件
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Qt 自动生成的文件 (MOC/UIC/RCC)
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.moc
+
+# Qt Creator / VS Qt 插件用户配置
+*.pro.user
+*.qmake.stash
+Makefile
+Makefile.Debug
+Makefile.Release
+
+# 其他临时杂项
+*.tmp
+*.log
+~$*
