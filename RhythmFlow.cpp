@@ -70,6 +70,13 @@ RhythmFlow::RhythmFlow(QWidget* parent)
 )");
     connect(btnSample, &QPushButton::clicked, this, &RhythmFlow::onPlaySample);
 
+    // 确保按钮位于最上层（标题栏之上）
+    btnOpen->raise();
+    btnSample->raise();
+
+    // 设置顶部透明标题栏用于拖动窗口
+    setupTitleBar();
+
     //无边框窗口+启用透明背景+外发光特效
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -156,6 +163,27 @@ void RhythmFlow::onOpenFile()
 }
 bool RhythmFlow::eventFilter(QObject* obj, QEvent* event)
 {
+    // ===== 新增：透明标题栏拖动 =====
+    if (obj == m_titleBar) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent* me = static_cast<QMouseEvent*>(event);
+            if (me->button() == Qt::LeftButton) {
+                m_dragging = true;
+                m_dragStartPos = me->globalPosition().toPoint() - frameGeometry().topLeft();
+                return true;
+            }
+        }
+        else if (event->type() == QEvent::MouseMove && m_dragging) {
+            QMouseEvent* me = static_cast<QMouseEvent*>(event);
+            move(me->globalPosition().toPoint() - m_dragStartPos);
+            return true;
+        }
+        else if (event->type() == QEvent::MouseButtonRelease && m_dragging) {
+            m_dragging = false;
+            return true;
+        }
+    }
+
     if (event->type() == QEvent::KeyPress) {
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->isAutoRepeat()) return true;
@@ -228,4 +256,13 @@ void RhythmFlow::toggleGameMode()
     if (!m_game->isActive()) {
         // 退出游戏，恢复纯享模式
     }
+}
+void RhythmFlow::setupTitleBar()
+{
+    m_titleBar = new QWidget(m_visualizer);
+    m_titleBar->setGeometry(0, 0, width(), 20);          // 顶部20像素高
+    m_titleBar->setCursor(Qt::SizeAllCursor);             // 提示可拖动
+    m_titleBar->setStyleSheet("background: transparent;");// 完全透明
+    m_titleBar->installEventFilter(this);                 // 由主窗口的事件过滤器处理
+    m_titleBar->show();
 }

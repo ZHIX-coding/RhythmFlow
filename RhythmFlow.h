@@ -37,6 +37,11 @@ private:
     // 内置歌曲数据
     QStringList m_sampleNames;
     QStringList m_samplePaths;
+    // 窗口拖动相关
+    QWidget* m_titleBar = nullptr;
+    bool m_dragging = false;
+    QPoint m_dragStartPos;
+    void setupTitleBar();
 };
 
 #endif // RHYTHMFLOW_H
