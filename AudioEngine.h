@@ -1,4 +1,4 @@
-#ifndef AUDIOENGINE_H
+ï»¿#ifndef AUDIOENGINE_H
 #define AUDIOENGINE_H
 
 #include <QObject>
@@ -24,10 +24,16 @@ public:
     void playFile(const QString& filePath);
     const std::vector<float>& spectrum() const { return m_spectrum; }
     void playFile(const QUrl& url);
+    // æ–°å¢žæ’­æ”¾æŽ§åˆ¶
+    void pause();
+    void resume();
+    void togglePause();
+    bool isPaused() const;
+    QMediaPlayer* player() const { return m_player; }
 
 signals:
-    void spectrumUpdated();   // ÆµÆ×¸üÐÂ
-    void beatDetected();      // ¼ì²âµ½¹Äµã
+    void spectrumUpdated();   // é¢‘è°±æ›´æ–°
+    void beatDetected();      // æ£€æµ‹åˆ°é¼“ç‚¹
 
 private slots:
     void processAudioBuffer(const QAudioBuffer& buffer);
@@ -39,7 +45,7 @@ private:
     kiss_fft_cfg m_fftCfg = nullptr;
     std::vector<float> m_spectrum;
 
-    // ¹Äµã¼ì²âÏà¹Ø
+    // é¼“ç‚¹æ£€æµ‹ç›¸å…³
     std::vector<float> m_prevSpectrum;
     int m_beatCooldown = 0;
 };

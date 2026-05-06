@@ -1,4 +1,4 @@
-#include "Visualizer.h"
+﻿#include "Visualizer.h"
 #include <QTimer>
 #include <QRandomGenerator>
 #include <QPainter>
@@ -6,6 +6,7 @@
 #include <QMouseEvent>
 #include <QtMath>
 #include "RhythmGame.h"
+#include <QDateTime>
 
 Visualizer::Visualizer(QWidget* parent) : QWidget(parent)
 {
@@ -18,7 +19,7 @@ Visualizer::Visualizer(QWidget* parent) : QWidget(parent)
     connect(m_particleTimer, &QTimer::timeout, this, &Visualizer::updateParticles);
     m_particleTimer->start(16);
 
-    // ===== ���������ز� =====
+    // ===== 加载音符素材 =====
     m_pixNoteNormal.load(":/RhythmFlow/resources/note1.png");
     m_pixNoteStrong.load(":/RhythmFlow/resources/note2.png");
 
@@ -29,7 +30,7 @@ Visualizer::Visualizer(QWidget* parent) : QWidget(parent)
         m_useImageNotes = false;
     }
 
-    // ������Ч�ز�
+    // 加载特效素材
     m_pixHitEffect.load(":/RhythmFlow/resources/image1.png");
     m_pixPerfect.load(":/RhythmFlow/resources/perfect.png");
     m_pixGood.load(":/RhythmFlow/resources/good.png");
@@ -51,6 +52,15 @@ void Visualizer::paintEvent(QPaintEvent* event)
 
     drawParticles(painter);
 
+    // 绘制涟漪（粒子层之上，柱子层之下）
+    for (const auto& r : m_ripples) {
+        float alpha = r.lifetime / r.maxLifetime;
+        QColor rippleColor(255, 200, 100, static_cast<int>(120 * alpha));
+        painter.setPen(QPen(rippleColor, 2));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawEllipse(QPointF(r.x, r.y), r.radius, r.radius);
+    }
+
     if (m_spectrum.empty())
         return;
 
@@ -70,17 +80,46 @@ void Visualizer::paintEvent(QPaintEvent* event)
 
         QLinearGradient grad(0, height(), 0, height() - barHeight);
 
-        // ��Ϸģʽ�½�������͸����
+        // 游戏模式下降低柱子透明度
         int alpha0 = 220, alpha1 = 240, alpha2 = 255;
         if (m_game && m_game->isActive()) {
-            alpha0 = 180;   // �ײ���ɫ��͸��
-            alpha1 = 100;  // �в�ǳ���
-            alpha2 = 120;  // ������ɫ
+            alpha0 = 180;   // 底部青色半透明
+            alpha1 = 100;  // 中部浅青白
+            alpha2 = 120;  // 顶部白色
         }
 
         grad.setColorAt(0, QColor(0, 255, 255, alpha0));
         grad.setColorAt(0.6, QColor(180, 255, 255, alpha1));
         grad.setColorAt(1, QColor(255, 255, 255, alpha2));
+
+        // ===== 柱顶发光粒子 =====
+        if (barHeight > 30) {  // 柱子足够高才显示粒子
+            // 根据能量决定粒子数量
+            int particleCount = static_cast<int>(energy / 15.0f);
+            particleCount = qBound(8, particleCount, 16);
+
+            // 柱顶中心X坐标
+            float topX = i * barWidth + barWidth / 2.0f;
+            float topY = height() - barHeight;
+
+            for (int j = 0; j < particleCount; ++j) {
+                // 随机偏移（散落在柱顶周围）
+                float offsetX = (QRandomGenerator::global()->generateDouble() - 0.5f) * barWidth * 1.2f;
+                float offsetY = (QRandomGenerator::global()->generateDouble() - 0.5f) * 20.0f;
+
+                // 粒子颜色：柱顶白色，带随机透明度
+                int alpha = 120 + QRandomGenerator::global()->bounded(95);
+                QColor particleCol(255, 255, 255, alpha);
+
+                // 粒子大小：1.5~3.5像素
+                float radius =1.0f + QRandomGenerator::global()->generateDouble() * 1.0f;
+
+                // 绘制小圆点（光点）
+                painter.setBrush(particleCol);
+                painter.setPen(Qt::NoPen);
+                painter.drawEllipse(QPointF(topX + offsetX, topY + offsetY), radius, radius);
+            }
+        }
 
         painter.fillRect(i * barWidth, height() - barHeight,
             barWidth - 2, barHeight, grad);
@@ -96,6 +135,22 @@ void Visualizer::mousePressEvent(QMouseEvent* event)
             qBound(0.0, event->position().x() / width(), 1.0),
             qBound(0.0, event->position().y() / height(), 1.0)
         );
+
+        // 生成多圈涟漪（5圈，最大半径递增）
+        int rippleCount = 5;
+        float baseMaxRadius = 40.0f;   // 第一圈最大半径
+        float radiusStep = 20.0f;      // 每圈半径增量
+        float lifetime = 1.0f;         // 每圈持续时间
+        for (int i = 0; i < rippleCount; ++i) {
+            Ripple rip;
+            rip.x = event->position().x();
+            rip.y = event->position().y();
+            rip.radius = 5.0f;
+            rip.maxRadius = baseMaxRadius + i * radiusStep;
+            rip.lifetime = lifetime;
+            rip.maxLifetime = lifetime;
+            m_ripples.push_back(rip);
+        }
     }
     QWidget::mousePressEvent(event);
 }
@@ -214,8 +269,19 @@ void Visualizer::updateParticles()
         }
     }
 
-    // ������Ч��������
+    // 更新特效生命周期
     updateEffects(0.016f);
+
+    // 更新涟漪
+    for (auto& r : m_ripples) {
+        float progress = 1.0f - r.lifetime / r.maxLifetime; // 0~1
+        r.radius = 5.0f + (r.maxRadius - 5.0f) * progress;
+        r.lifetime -= 0.016f;
+    }
+    m_ripples.erase(std::remove_if(m_ripples.begin(), m_ripples.end(),
+        [](const Ripple& r) { return r.lifetime <= 0.0f; }),
+        m_ripples.end());
+
     update();
 }
 
@@ -278,7 +344,7 @@ void Visualizer::drawGame(QPainter& painter)
     const float trackSpacing = width() / (trackCount + 1.0f);
     const float hitYPos = height() * 0.74f;
 
-    // �����
+    // 轨道线
     QColor trackColor(255, 255, 255, 220);
     for (int i = 0; i < trackCount; ++i) {
         float x = (i + 1) * trackSpacing;
@@ -292,7 +358,7 @@ void Visualizer::drawGame(QPainter& painter)
         painter.drawLine(QLineF(x, 0.0, x, hitYPos));
     }
 
-    // �ж���
+    // 判定线
     QColor lineColor(255, 255, 255, 220);
     float lineY = hitYPos;
     float screenW = static_cast<float>(width());
@@ -302,10 +368,40 @@ void Visualizer::drawGame(QPainter& painter)
         painter.setPen(QPen(QColor(255, 220, 80, alpha), penWidth));
         painter.drawLine(QLineF(0.0, lineY, screenW, lineY));
     }
-    painter.setPen(QPen(lineColor, 2));
+    // ===== 判定线动态反馈 =====
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    QColor dynamicLineColor = lineColor;
+    int dynamicLineWidth = 2;
+    int glowAlphaBoost = 0;      // 额外光晕亮度
+
+    if (now - m_lastHitTimeMs < 200) {
+        // 击中：亮白加粗
+        float t = 1.0f - (now - m_lastHitTimeMs) / 200.0f;
+        dynamicLineColor = QColor(255, 255, 255, 220 + 35 * t);
+        dynamicLineWidth = 2 + 2 * t;
+        glowAlphaBoost = 60 * t;
+    }
+    else if (now - m_lastMissTimeMs < 200) {
+        // 错过：红色加粗
+        float t = 1.0f - (now - m_lastMissTimeMs) / 200.0f;
+        dynamicLineColor = QColor(180, 180, 180, 200 + 55 * t);
+        dynamicLineWidth = 2 + 4 * t;
+        glowAlphaBoost = 60 * t;
+    }
+
+    // 绘制光晕（亮度受反馈影响）
+    for (int glow = 3; glow >= 0; --glow) {
+        int alpha = 40 - glow * 10 + glowAlphaBoost;
+        if (alpha > 255) alpha = 255;
+        int penWidth = 2 + glow * 4;
+        painter.setPen(QPen(QColor(255, 220, 80, alpha), penWidth));
+        painter.drawLine(QLineF(0.0, lineY, screenW, lineY));
+    }
+    // 核心细线
+    painter.setPen(QPen(dynamicLineColor, dynamicLineWidth));
     painter.drawLine(QLineF(0.0, lineY, screenW, lineY));
 
-    // �������������ز�ͼƬ��
+    // 绘制音符（仅素材图片）
     painter.setPen(Qt::NoPen);
     for (const auto& note : m_game->notes()) {
         float x = (note.track + 1) * trackSpacing;
@@ -320,17 +416,26 @@ void Visualizer::drawGame(QPainter& painter)
         }
     }
 
-    // ����������
+    // 分数和连击
     painter.setPen(QColor(255, 255, 255, 200));
     painter.setFont(QFont(QStringLiteral("Arial"), 16, QFont::Bold));
     painter.drawText(20, 40, QString("Score: %1").arg(m_game->score()));
-    painter.drawText(20, 65, QString("Combo: %1").arg(m_game->combo()));
 
-    // ������Ч�����ϲ㣩
+    // 静态连击数（右上角，简洁样式）
+    int combo = m_game->combo();
+    if (combo > 0) {
+        painter.setPen(QColor(255, 255, 255, 220));
+        painter.setFont(QFont("Arial", 20, QFont::Bold));
+        QString comboText = QString("%1").arg(combo);
+        QRectF comboRect(width() - 200, 40, 180, 30);
+        painter.drawText(comboRect, Qt::AlignRight | Qt::AlignVCenter, comboText);
+    }
+
+    // 绘制特效（最上层）
     drawEffects(painter);
 }
 
-// ========== ��Ч��غ��� ==========
+// ========== 特效相关函数 ==========
 void Visualizer::updateEffects(float dt)
 {
     for (auto& e : m_hitEffects)
@@ -343,45 +448,78 @@ void Visualizer::updateEffects(float dt)
 void Visualizer::drawEffects(QPainter& painter)
 {
     for (const auto& e : m_hitEffects) {
-        QPixmap* pix = nullptr;
-        float sizeW = 0.0f;
-
-        switch (e.type) {
-        case HitEffect::HitImage: pix = &m_pixHitEffect; sizeW = 80.0f; break; // ����ͼƬ����
-        case HitEffect::TextPerfect: pix = &m_pixPerfect; sizeW = 140.0f; break; // Perfect ����
-        case HitEffect::TextGood: pix = &m_pixGood; sizeW = 120.0f; break; // Good ����
-        case HitEffect::TextMiss: pix = &m_pixMiss; sizeW = 120.0f; break; // Miss ����
+        if (e.type == HitEffect::ComboText) {
+            // 连击数特效：大号金色字体，有缩放弹出效果
+            painter.save();
+            QFont font("Arial", 60, QFont::Bold);
+            painter.setFont(font);
+            QString text = QString::number(e.combo);
+            // 生命期0.4s，前0.1s放大，后0.3s缩小并淡出
+            float progress = e.lifetime / 0.4f; // 剩余比例
+            float scale = 1.0f + (1.0f - progress) * 0.4f; // 从1.4倍缩小到1.0
+            int alpha = static_cast<int>(180 * progress);
+            painter.setPen(QColor(180, 180, 180, alpha));
+            painter.translate(e.x, e.y);
+            painter.scale(scale, scale);
+            painter.drawText(QRectF(-60, -30, 120, 60), Qt::AlignCenter, text);
+            painter.restore();
         }
-        if (!pix || pix->isNull()) continue;
-
-        float alpha = qBound(0.0f, e.lifetime / 0.3f, 1.0f);
-        painter.setOpacity(alpha);
-        float h = sizeW * (pix->height() / (float)pix->width());
-        painter.drawPixmap(QRectF(e.x - sizeW / 2, e.y - h / 2, sizeW, h), *pix, pix->rect());
+        else {
+            QPixmap* pix = nullptr;
+            float sizeW = 0.0f;
+            switch (e.type) {
+            case HitEffect::HitImage: pix = &m_pixHitEffect; sizeW = 80.0f; break;
+            case HitEffect::TextPerfect: pix = &m_pixPerfect; sizeW = 140.0f; break;
+            case HitEffect::TextGood: pix = &m_pixGood; sizeW = 120.0f; break;
+            case HitEffect::TextMiss: pix = &m_pixMiss; sizeW = 120.0f; break;
+            default: continue;
+            }
+            if (!pix || pix->isNull()) continue;
+            float alpha = qBound(0.0f, e.lifetime / 0.3f, 1.0f);
+            painter.setOpacity(alpha);
+            float h = sizeW * (pix->height() / (float)pix->width());
+            painter.drawPixmap(QRectF(e.x - sizeW / 2, e.y - h / 2, sizeW, h), *pix, pix->rect());
+        }
     }
     painter.setOpacity(1.0f);
 }
 
 void Visualizer::onNoteHit(int track, float y, int grade)
 {
+    m_lastHitTimeMs = QDateTime::currentMSecsSinceEpoch();
     const int trackCount = 4;
     float spacing = width() / (trackCount + 1.0f);
     float sx = (track + 1) * spacing;
     float sy = y * height();
 
-    // 1. ������Ч��ͼƬ��
+    // 1. 击中特效（图片）放在音符位置
     m_hitEffects.push_back({ sx, sy, HitEffect::HitImage, 0.2f });
 
-    // 2. �ж����֣����ص��������ж������Ϸ���
-    float textX = width() * 0.92f;
-    float textY = height() * 0.74f - 75;
+    // 2. 判定文字放在该轨道的判定线稍上方
+    float hitYPos = height() * 0.74f;
+    float textX = sx;
+    float textY = hitYPos - 50;   // 判定线上方50像素
     HitEffect::Type textType = (grade == 0) ? HitEffect::TextPerfect : HitEffect::TextGood;
     m_hitEffects.push_back({ textX, textY, textType, 0.3f });
 }
 
 void Visualizer::onNoteMissed(int track)
 {
-    float textX = width() * 0.92f;
-    float textY = height() * 0.74f - 95;
+    m_lastMissTimeMs = QDateTime::currentMSecsSinceEpoch();
+    const int trackCount = 4;
+    float spacing = width() / (trackCount + 1.0f);
+    float sx = (track + 1) * spacing;
+    float hitYPos = height() * 0.74f;
+    float textX = sx;
+    float textY = hitYPos - 50;
     m_hitEffects.push_back({ textX, textY, HitEffect::TextMiss, 0.3f });
+}
+
+void Visualizer::onComboChanged(int combo)
+{
+    if (combo > 0) {
+        float posX = width() - 200.0f;   // 与静态连击的 x 左边界对齐
+        float posY = 60.0f;              // 静态上方，避免覆盖
+        m_hitEffects.push_back({ posX, posY, HitEffect::ComboText, 0.4f, combo });
+    }
 }

@@ -1,4 +1,4 @@
-#include "RhythmFlow.h"
+ï»¿#include "RhythmFlow.h"
 #include <QGraphicsDropShadowEffect>
 #include <QMenu>
 #include <QAction>
@@ -7,6 +7,9 @@
 #include <QApplication>
 #include <QKeyEvent>
 #include <QTimer>
+#include <QPropertyAnimation>
+#include <QGraphicsOpacityEffect>
+#include <QRandomGenerator>
 
 RhythmFlow::RhythmFlow(QWidget* parent)
     : QMainWindow(parent)
@@ -14,20 +17,20 @@ RhythmFlow::RhythmFlow(QWidget* parent)
     setWindowTitle("RhythmFlow v1.0 - Framework");
     resize(800, 600);
 
-    // ´´½¨ÖĞĞÄ¿Ø¼ş£¨Visualizer£©
+    // åˆ›å»ºä¸­å¿ƒæ§ä»¶ï¼ˆVisualizerï¼‰
     m_visualizer = new Visualizer(this);
     setCentralWidget(m_visualizer);
 
-    // ´´½¨ÒôÆµÒıÇæ
+    // åˆ›å»ºéŸ³é¢‘å¼•æ“
     m_audioEngine = new AudioEngine(this);
     connect(m_audioEngine, &AudioEngine::spectrumUpdated, this, [this]() {
         m_visualizer->setSpectrum(m_audioEngine->spectrum());
         });
 
-    // ´´½¨Ğü¸¡°´Å¥£¨¼òµ¥²¼¾Ö£¬ºóĞø¿ÉÃÀ»¯£©
-    QPushButton* btnOpen = new QPushButton("Open MP3 File", m_visualizer);
-    btnOpen->setFocusPolicy(Qt::NoFocus);   // °´Å¥ÓÀÔ¶²»»ñÈ¡¼üÅÌ½¹µã
-    btnOpen->setGeometry(20, 20, 120, 30);
+    // åˆ›å»ºæ‚¬æµ®æŒ‰é’®ï¼ˆç®€å•å¸ƒå±€ï¼Œåç»­å¯ç¾åŒ–ï¼‰
+    QPushButton* btnOpen = new QPushButton("MP3", m_visualizer);
+    btnOpen->setFocusPolicy(Qt::NoFocus);   // æŒ‰é’®æ°¸è¿œä¸è·å–é”®ç›˜ç„¦ç‚¹
+    btnOpen->setGeometry(20, 20, 80, 30);
     btnOpen->setStyleSheet(R"(
     QPushButton {
         background-color: rgba(0, 60, 80, 200);
@@ -47,10 +50,10 @@ RhythmFlow::RhythmFlow(QWidget* parent)
 )");
     connect(btnOpen, &QPushButton::clicked, this, &RhythmFlow::onOpenFile);
 
-    // ¡°Play Sample¡±°´Å¥£¨µ¯³ö²Ëµ¥Ñ¡ÔñÄÚÖÃ¸èÇú£©
-    QPushButton* btnSample = new QPushButton("Play Sample", m_visualizer);
+    // â€œPlay Sampleâ€æŒ‰é’®ï¼ˆå¼¹å‡ºèœå•é€‰æ‹©å†…ç½®æ­Œæ›²ï¼‰
+    QPushButton* btnSample = new QPushButton("Play", m_visualizer);
     btnSample->setFocusPolicy(Qt::NoFocus);
-    btnSample->setGeometry(20, 60, 120, 30);   // y=60£¬Î»ÓÚ Open °´Å¥ÏÂ·½
+    btnSample->setGeometry(20, 60, 80, 30);   // y=60ï¼Œä½äº Open æŒ‰é’®ä¸‹æ–¹
     btnSample->setStyleSheet(R"(
     QPushButton {
         background-color: rgba(0, 60, 80, 200);
@@ -70,57 +73,88 @@ RhythmFlow::RhythmFlow(QWidget* parent)
 )");
     connect(btnSample, &QPushButton::clicked, this, &RhythmFlow::onPlaySample);
 
-    // È·±£°´Å¥Î»ÓÚ×îÉÏ²ã£¨±êÌâÀ¸Ö®ÉÏ£©
+    // ç¡®ä¿æŒ‰é’®ä½äºæœ€ä¸Šå±‚ï¼ˆæ ‡é¢˜æ ä¹‹ä¸Šï¼‰
     btnOpen->raise();
     btnSample->raise();
 
-    // ÉèÖÃ¶¥²¿Í¸Ã÷±êÌâÀ¸ÓÃÓÚÍÏ¶¯´°¿Ú
+    // è®¾ç½®é¡¶éƒ¨é€æ˜æ ‡é¢˜æ ç”¨äºæ‹–åŠ¨çª—å£
     setupTitleBar();
 
-    //ÎŞ±ß¿ò´°¿Ú+ÆôÓÃÍ¸Ã÷±³¾°+Íâ·¢¹âÌØĞ§
+    //æ— è¾¹æ¡†çª—å£+å¯ç”¨é€æ˜èƒŒæ™¯+å¤–å‘å…‰ç‰¹æ•ˆ
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     QGraphicsDropShadowEffect* glowEffect = new QGraphicsDropShadowEffect(this);
-    glowEffect->setBlurRadius(40);          // Ä£ºı°ë¾¶£¬¿ØÖÆ·¢¹â·¶Î§
-    glowEffect->setOffset(0, 0);            // Æ«ÒÆÎª0£¬²úÉúÖĞĞÄ·¢¹â
-    glowEffect->setColor(QColor(0, 255, 255, 180)); // ·¢¹âÑÕÉ«
+    glowEffect->setBlurRadius(40);          // æ¨¡ç³ŠåŠå¾„ï¼Œæ§åˆ¶å‘å…‰èŒƒå›´
+    glowEffect->setOffset(0, 0);            // åç§»ä¸º0ï¼Œäº§ç”Ÿä¸­å¿ƒå‘å…‰
+    glowEffect->setColor(QColor(0, 255, 255, 180)); // å‘å…‰é¢œè‰²
     m_visualizer->setGraphicsEffect(glowEffect);
 
-    QLabel* hintLabel = new QLabel("Right-click to exit", m_visualizer);
+    QLabel* hintLabel = new QLabel("exit", m_visualizer);
     hintLabel->setStyleSheet("color: rgba(200,200,200,100); font-size: 12px; background: transparent;");
-    hintLabel->setGeometry(20, height() - 30, 150, 20);
-    hintLabel->setAttribute(Qt::WA_TransparentForMouseEvents);  // ÈÃÊó±êÊÂ¼ş´©Í¸£¬²»Ó°ÏìÓÒ¼ü
+    hintLabel->setGeometry(20, height() - 30, 60, 20);
+    hintLabel->setAttribute(Qt::WA_TransparentForMouseEvents);  // è®©é¼ æ ‡äº‹ä»¶ç©¿é€ï¼Œä¸å½±å“å³é”®
 
-    // ´´½¨ÓÎÏ·¶ÔÏó
+    // åŠ¨æ€æç¤ºæ ‡ç­¾ï¼ˆå¸¦æ¸å˜åŠ¨ç”»ï¼‰
+    m_hintLabel = new QLabel(m_visualizer);
+    m_hintLabel->setAlignment(Qt::AlignLeft | Qt::AlignBottom);
+    m_hintLabel->setStyleSheet("color: rgba(200,200,200,180); font-size: 14px; background: transparent; padding: 4px;");
+    m_hintLabel->setGeometry(20, height() - 55, 300, 25);
+    m_hintLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_hintLabel->hide(); // é»˜è®¤éšè—
+
+    m_hintEffect = new QGraphicsOpacityEffect(m_hintLabel);
+    m_hintLabel->setGraphicsEffect(m_hintEffect);
+    m_hintEffect->setOpacity(0.0);
+
+    m_hintTimer = new QTimer(this);
+    m_hintTimer->setSingleShot(true);
+    connect(m_hintTimer, &QTimer::timeout, this, [this]() {
+        // æ¸éšåŠ¨ç”»
+        QPropertyAnimation* fadeOut = new QPropertyAnimation(m_hintEffect, "opacity", this);
+        fadeOut->setDuration(500);
+        fadeOut->setStartValue(1.0);
+        fadeOut->setEndValue(0.0);
+        connect(fadeOut, &QPropertyAnimation::finished, m_hintLabel, &QLabel::hide);
+        fadeOut->start(QAbstractAnimation::DeleteWhenStopped);
+        });
+
+    // åˆ›å»ºæ¸¸æˆå¯¹è±¡
     m_game = new RhythmGame(this);
     m_visualizer->setGame(m_game);
     connect(m_game, &RhythmGame::noteHit, m_visualizer, &Visualizer::onNoteHit);
     connect(m_game, &RhythmGame::noteMissed, m_visualizer, &Visualizer::onNoteMissed);
+    connect(m_game, &RhythmGame::scoreChanged, this, [this](int score, int combo) {
+        m_visualizer->onComboChanged(combo);
+        });
 
-    // ¹Äµã¼ì²â ¡ú Éú³ÉÒô·û
+    // é¼“ç‚¹æ£€æµ‹ â†’ ç”ŸæˆéŸ³ç¬¦
     connect(m_audioEngine, &AudioEngine::beatDetected, m_game, &RhythmGame::onBeatDetected);
 
-    // ·ÖÊı±ä»¯¸üĞÂ£¨¿ÉÓÃÓÚÍâ²¿ÏÔÊ¾£©
+    // åˆ†æ•°å˜åŒ–æ›´æ–°ï¼ˆå¯ç”¨äºå¤–éƒ¨æ˜¾ç¤ºï¼‰
     // connect(m_game, &RhythmGame::scoreChanged, ...);
 
-    // °²×°ÊÂ¼ş¹ıÂËÆ÷£¨ÓÃÓÚÈ«¾Ö°´¼ü£©
+    // å®‰è£…äº‹ä»¶è¿‡æ»¤å™¨ï¼ˆç”¨äºå…¨å±€æŒ‰é”®ï¼‰
     installEventFilter(this);
 
-    // ÓÎÏ·¸üĞÂ¶¨Ê±Æ÷
+    // æ¸¸æˆæ›´æ–°å®šæ—¶å™¨
     QTimer* gameTimer = new QTimer(this);
     connect(gameTimer, &QTimer::timeout, this, [this]() {
         if (m_game->isActive()) {
-            m_game->update(0.016f);  // Ô¼ 60fps
+            m_game->update(0.016f);  // çº¦ 60fps
             m_visualizer->update();
         }
         });
     gameTimer->start(16);
 
-    // ÄÚÖÃ¸èÇúÁĞ±í£¨Ãû³ÆºÍ qrc Â·¾¶Ò»Ò»¶ÔÓ¦£©
+    // å†…ç½®æ­Œæ›²åˆ—è¡¨ï¼ˆåç§°å’Œ qrc è·¯å¾„ä¸€ä¸€å¯¹åº”ï¼‰
     m_sampleNames << "Alex LeMirage - SOLANA_L"
         << "Dionela _ Jay R - sining_L";
     m_samplePaths << "qrc:/RhythmFlow/resources/singing1.mp3"
         << "qrc:/RhythmFlow/resources/singing2.mp3";
+
+    // ç”¨å†…ç½®æ­Œæ›²åˆå§‹åŒ–æ’­æ”¾åˆ—è¡¨ï¼ˆä»…ä¸€æ¬¡ï¼‰
+    m_playlist = m_samplePaths;
+    m_currentPlayIndex = -1;
 }
 
 void RhythmFlow::contextMenuEvent(QContextMenuEvent* event)
@@ -142,7 +176,7 @@ void RhythmFlow::contextMenuEvent(QContextMenuEvent* event)
     }
 )");
 
-    QAction* exitAction = menu.addAction("Exit the program");
+    QAction* exitAction = menu.addAction("Exit");
     connect(exitAction, &QAction::triggered, this, &RhythmFlow::onExitApp);
 
     menu.exec(event->globalPos());
@@ -158,12 +192,16 @@ void RhythmFlow::onOpenFile()
     QString fileName = QFileDialog::getOpenFileName(this,
         "Select MP3 File", "", "MP3 Files (*.mp3)");
     if (!fileName.isEmpty()) {
+        // æ–­å¼€æ—§è‡ªåŠ¨åˆ‡æ­Œï¼ˆå¦‚æœæœ‰ï¼‰
+        disconnect(m_audioEngine->player(), &QMediaPlayer::mediaStatusChanged, this, nullptr);
         m_audioEngine->playFile(fileName);
+        m_currentPlayIndex = -1;   // æ ‡è®°ä¸ºä¸åœ¨å†…ç½®åˆ—è¡¨ä¸­
     }
 }
+
 bool RhythmFlow::eventFilter(QObject* obj, QEvent* event)
 {
-    // ===== ĞÂÔö£ºÍ¸Ã÷±êÌâÀ¸ÍÏ¶¯ =====
+    // ===== æ–°å¢ï¼šé€æ˜æ ‡é¢˜æ æ‹–åŠ¨ =====
     if (obj == m_titleBar) {
         if (event->type() == QEvent::MouseButtonPress) {
             QMouseEvent* me = static_cast<QMouseEvent*>(event);
@@ -188,13 +226,30 @@ bool RhythmFlow::eventFilter(QObject* obj, QEvent* event)
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->isAutoRepeat()) return true;
 
-        // ¿Õ¸ñÇĞ»»ÓÎÏ·Ä£Ê½
+        // ===== æ’­æ”¾å™¨æ§åˆ¶å¿«æ·é”® =====
+        switch (keyEvent->key()) {
+        case Qt::Key_1: prevTrack(); showHint("Previous"); return true;
+        case Qt::Key_2:
+            m_audioEngine->togglePause();
+            showHint(m_audioEngine->isPaused() ? "Pause" : "Play");
+            return true;
+        case Qt::Key_3: nextTrack(); showHint("Next"); return true;
+        case Qt::Key_4:
+            m_playMode = (m_playMode + 1) % 3;
+            if (m_playMode == 0) showHint("All");
+            else if (m_playMode == 1) showHint("One");
+            else showHint("Shuffle");
+            return true;
+        default: break;
+        }
+
+        // ç©ºæ ¼åˆ‡æ¢æ¸¸æˆæ¨¡å¼
         if (keyEvent->key() == Qt::Key_Space) {
             toggleGameMode();
             return true;
         }
 
-        // ÓÎÏ·°´¼ü
+        // æ¸¸æˆæŒ‰é”®
         if (m_game->isActive()) {
             switch (keyEvent->key()) {
             case Qt::Key_D: m_game->pressKey(0); return true;
@@ -227,7 +282,7 @@ void RhythmFlow::onPlaySample()
         }
     )");
 
-    // ¶¯Ì¬Éú³É²Ëµ¥Ïî
+    // åŠ¨æ€ç”Ÿæˆèœå•é¡¹
     for (int i = 0; i < m_sampleNames.size(); ++i) {
         QAction* action = menu.addAction(m_sampleNames[i]);
         connect(action, &QAction::triggered, this, [this, i]() {
@@ -235,7 +290,7 @@ void RhythmFlow::onPlaySample()
             });
     }
 
-    // ²Ëµ¥ÏÔÊ¾ÔÚ°´Å¥ÕıÏÂ·½
+    // èœå•æ˜¾ç¤ºåœ¨æŒ‰é’®æ­£ä¸‹æ–¹
     QPushButton* btn = qobject_cast<QPushButton*>(sender());
     if (btn) {
         QPoint pos = btn->mapToGlobal(QPoint(0, btn->height()));
@@ -246,7 +301,20 @@ void RhythmFlow::onPlaySample()
 void RhythmFlow::onSampleSelected(int index)
 {
     if (index >= 0 && index < m_samplePaths.size()) {
-        m_audioEngine->playFile(QUrl(m_samplePaths[index]));
+        // æ–­å¼€æ—§è¿æ¥ï¼Œé˜²æ­¢é‡å¤è§¦å‘
+        disconnect(m_audioEngine->player(), &QMediaPlayer::mediaStatusChanged, this, nullptr);
+
+        m_currentPlayIndex = index;   // è®¾ç½®å½“å‰æ’­æ”¾ç´¢å¼•
+        QString path = m_samplePaths[index];
+        m_audioEngine->playFile(QUrl(path));
+
+        // é‡æ–°è¿æ¥è‡ªåŠ¨åˆ‡æ­Œï¼ˆä»…åœ¨å†…ç½®åˆ—è¡¨æ’­æ”¾æ—¶ç”Ÿæ•ˆï¼‰
+        connect(m_audioEngine->player(), &QMediaPlayer::mediaStatusChanged, this,
+            [this](QMediaPlayer::MediaStatus status) {
+                if (status == QMediaPlayer::EndOfMedia && m_currentPlayIndex >= 0) {
+                    nextTrack();
+                }
+            });
     }
 }
 
@@ -254,15 +322,85 @@ void RhythmFlow::toggleGameMode()
 {
     m_game->setActive(!m_game->isActive());
     if (!m_game->isActive()) {
-        // ÍË³öÓÎÏ·£¬»Ö¸´´¿ÏíÄ£Ê½
+        // é€€å‡ºæ¸¸æˆï¼Œæ¢å¤çº¯äº«æ¨¡å¼
     }
 }
 void RhythmFlow::setupTitleBar()
 {
     m_titleBar = new QWidget(m_visualizer);
-    m_titleBar->setGeometry(0, 0, width(), 20);          // ¶¥²¿20ÏñËØ¸ß
-    m_titleBar->setCursor(Qt::SizeAllCursor);             // ÌáÊ¾¿ÉÍÏ¶¯
-    m_titleBar->setStyleSheet("background: transparent;");// ÍêÈ«Í¸Ã÷
-    m_titleBar->installEventFilter(this);                 // ÓÉÖ÷´°¿ÚµÄÊÂ¼ş¹ıÂËÆ÷´¦Àí
+    m_titleBar->setGeometry(0, 0, width(), 20);          // é¡¶éƒ¨20åƒç´ é«˜
+    m_titleBar->setCursor(Qt::SizeAllCursor);             // æç¤ºå¯æ‹–åŠ¨
+    m_titleBar->setStyleSheet("background: transparent;");// å®Œå…¨é€æ˜
+    m_titleBar->installEventFilter(this);                 // ç”±ä¸»çª—å£çš„äº‹ä»¶è¿‡æ»¤å™¨å¤„ç†
     m_titleBar->show();
+}
+void RhythmFlow::showHint(const QString& text)
+{
+    m_hintLabel->setText(text);
+    m_hintLabel->show();
+    m_hintTimer->stop(); // å–æ¶ˆä¹‹å‰çš„å®šæ—¶å™¨
+
+    // æ¸æ˜¾åŠ¨ç”»
+    QPropertyAnimation* fadeIn = new QPropertyAnimation(m_hintEffect, "opacity", this);
+    fadeIn->setDuration(300);
+    fadeIn->setStartValue(m_hintEffect->opacity());
+    fadeIn->setEndValue(1.0);
+    fadeIn->start(QAbstractAnimation::DeleteWhenStopped);
+
+    // åœç•™1.5ç§’åå¼€å§‹æ¸éš
+    m_hintTimer->start(1500);
+}
+void RhythmFlow::playByIndex(int index)
+{
+    if (index < 0 || index >= m_playlist.size()) return;
+    m_currentPlayIndex = index;
+    QString path = m_playlist[index];
+
+    // æ–­å¼€æ—§è¿æ¥
+    disconnect(m_audioEngine->player(), &QMediaPlayer::mediaStatusChanged, this, nullptr);
+
+    if (path.startsWith("qrc:"))
+        m_audioEngine->playFile(QUrl(path));
+    else
+        m_audioEngine->playFile(path);
+
+    // é‡æ–°è¿æ¥è‡ªåŠ¨åˆ‡æ­Œ
+    connect(m_audioEngine->player(), &QMediaPlayer::mediaStatusChanged, this,
+        [this](QMediaPlayer::MediaStatus status) {
+            if (status == QMediaPlayer::EndOfMedia && m_currentPlayIndex >= 0) {
+                nextTrack();
+            }
+        });
+}
+
+void RhythmFlow::prevTrack()
+{
+    if (m_currentPlayIndex < 0 || m_playlist.isEmpty()) return;
+    int newIndex = m_currentPlayIndex - 1;
+    if (newIndex < 0) newIndex = m_playlist.size() - 1;
+    playByIndex(newIndex);
+}
+
+void RhythmFlow::nextTrack()
+{
+    if (m_currentPlayIndex < 0 || m_playlist.isEmpty()) return;
+    int newIndex;
+    if (m_playMode == 2) {
+        // éšæœºæ’­æ”¾
+        newIndex = QRandomGenerator::global()->bounded(m_playlist.size());
+    }
+    else {
+        newIndex = m_currentPlayIndex + 1;
+        if (newIndex >= m_playlist.size()) {
+            newIndex = (m_playMode == 0) ? 0 : m_currentPlayIndex; // é¡ºåºå¾ªç¯æˆ–å•æ›²å¾ªç¯
+        }
+    }
+    playByIndex(newIndex);
+}
+
+void RhythmFlow::updateModeHint()
+{
+    if (m_playMode == 0) showHint("All");
+    else if (m_playMode == 1) showHint("One");
+    else showHint("Shuffle");;
 }

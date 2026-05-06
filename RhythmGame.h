@@ -1,4 +1,4 @@
-#ifndef RHYTHMGAME_H
+﻿#ifndef RHYTHMGAME_H
 #define RHYTHMGAME_H
 
 #include <QObject>
@@ -45,6 +45,7 @@ private:
     std::vector<Note> m_notes;
     int m_score = 0;
     int m_combo = 0;
+    float getCurrentSpeed() const;
 
     static constexpr float NOTE_SPEED = 1.25f;
     static constexpr float HIT_Y = 0.74f;

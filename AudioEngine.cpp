@@ -1,4 +1,4 @@
-#include "AudioEngine.h"
+ï»¿#include "AudioEngine.h"
 #include <QUrl>
 #include <cmath>
 #include <QDebug>
@@ -67,27 +67,27 @@ void AudioEngine::processAudioBuffer(const QAudioBuffer& buffer)
         }
         float avg = sum / (end - start);
         float db = 20.0f * log10f(avg + 1e-6f);
-        m_spectrum[band] = qMax(db + 80.0f, 0.0f);  // µ÷Õû¹ıÁéÃô¶È
+        m_spectrum[band] = qMax(db + 80.0f, 0.0f);  // è°ƒæ•´è¿‡çµæ•åº¦
     }
-    // ¹Äµã¼ì²â£¨ÆµÆ×Í¨Á¿·¨£©
+    // é¼“ç‚¹æ£€æµ‹ï¼ˆé¢‘è°±é€šé‡æ³•ï¼‰
     float flux = 0.0f;
     for (int i = 0; i < BAR_COUNT; ++i) {
         float diff = m_spectrum[i] - m_prevSpectrum[i];
         if (diff > 0) flux += diff;
     }
 
-    // ¸üÎÈ¶¨µÄ¶¯Ì¬ãĞÖµ£º¸üĞÂËÙ¶È·ÅÂı
+    // æ›´ç¨³å®šçš„åŠ¨æ€é˜ˆå€¼ï¼šæ›´æ–°é€Ÿåº¦æ”¾æ…¢
     static float avgFlux = 0.0f;
-    avgFlux = avgFlux * 0.97f + flux * 0.03f;  // Ô­±¾ 0.9/0.1£¬ÏÖÔÚÆ½»¬ºÜ¶à
+    avgFlux = avgFlux * 0.97f + flux * 0.03f;  // åŸæœ¬ 0.9/0.1ï¼Œç°åœ¨å¹³æ»‘å¾ˆå¤š
 
-    // ¶¯Ì¬ãĞÖµ±¶Êı£º1.2 ±¶ÀúÊ·Æ½¾ù£¬Í¬Ê±ÒªÇó flux ²»ÄÜÌ«Ğ¡£¨> 0.5£©
+    // åŠ¨æ€é˜ˆå€¼å€æ•°ï¼š1.2 å€å†å²å¹³å‡ï¼ŒåŒæ—¶è¦æ±‚ flux ä¸èƒ½å¤ªå°ï¼ˆ> 0.5ï¼‰
     if (m_beatCooldown <= 0 && flux > avgFlux * 1.25f && flux > 0.8f) {
         emit beatDetected();
-        m_beatCooldown = 8;  // ÀäÈ´Ô¼ 150ms£¨¼ÙÉèÃ¿Ö¡ 25ms ×óÓÒ£©
+        m_beatCooldown = 8;  // å†·å´çº¦ 150msï¼ˆå‡è®¾æ¯å¸§ 25ms å·¦å³ï¼‰
     }
     if (m_beatCooldown > 0) m_beatCooldown--;
 
-    // ±£´æµ±Ç°ÆµÆ×¹©ÏÂÒ»Ö¡±È½Ï
+    // ä¿å­˜å½“å‰é¢‘è°±ä¾›ä¸‹ä¸€å¸§æ¯”è¾ƒ
     m_prevSpectrum = m_spectrum;
 
     emit spectrumUpdated();
@@ -97,4 +97,27 @@ void AudioEngine::playFile(const QUrl& url)
 {
     m_player->setSource(url);
     m_player->play();
+}
+
+void AudioEngine::pause()
+{
+    m_player->pause();
+}
+
+void AudioEngine::resume()
+{
+    m_player->play();
+}
+
+void AudioEngine::togglePause()
+{
+    if (m_player->playbackState() == QMediaPlayer::PlayingState)
+        m_player->pause();
+    else
+        m_player->play();
+}
+
+bool AudioEngine::isPaused() const
+{
+    return m_player->playbackState() == QMediaPlayer::PausedState;
 }

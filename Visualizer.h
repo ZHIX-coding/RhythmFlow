@@ -25,6 +25,7 @@ public:
 public slots:
     void onNoteHit(int track, float y, int grade);
     void onNoteMissed(int track);
+    void onComboChanged(int combo);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -59,12 +60,12 @@ private:
     QPixmap m_pixNoteStrong;
     bool m_useImageNotes = false;
 
-    // ÌØÐ§ÏµÍ³
     struct HitEffect {
         float x, y;
-        enum Type { HitImage, TextPerfect, TextGood, TextMiss };
+        enum Type { HitImage, TextPerfect, TextGood, TextMiss, ComboText }; // 新增 ComboText
         Type type;
         float lifetime;
+        int combo = 0; // 用于 ComboText 类型，存储当前连击数
     };
     std::vector<HitEffect> m_hitEffects;
     QPixmap m_pixHitEffect;
@@ -74,6 +75,20 @@ private:
 
     void updateEffects(float dt);
     void drawEffects(QPainter& painter);
+
+    // 判定线动态反馈
+    qint64 m_lastHitTimeMs = 0;
+    qint64 m_lastMissTimeMs = 0;
+
+    // 涟漪特效
+    struct Ripple {
+        float x, y;        // 屏幕坐标
+        float radius;      // 当前半径
+        float maxRadius;   // 最大半径
+        float lifetime;    // 剩余生命（秒）
+        float maxLifetime; // 总生命（秒）
+    };
+    std::vector<Ripple> m_ripples;
 };
 
 #endif // VISUALIZER_H#pragma once

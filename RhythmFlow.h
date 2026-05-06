@@ -1,4 +1,4 @@
-#ifndef RHYTHMFLOW_H
+﻿#ifndef RHYTHMFLOW_H
 #define RHYTHMFLOW_H
 
 #include <QMainWindow>
@@ -7,10 +7,10 @@
 #include <QFileDialog>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QGraphicsOpacityEffect>
 #include "AudioEngine.h"
 #include "Visualizer.h"
 #include "RhythmGame.h"
-#include <QSoundEffect>
 
 class RhythmFlow : public QMainWindow
 {
@@ -22,8 +22,8 @@ public:
 private slots:
     void onOpenFile();
     void onExitApp();
-    void onPlaySample();           // �����ťʱ�����˵�
-    void onSampleSelected(int index); // �û�ѡ���˲˵��е�ĳ�׸�
+    void onPlaySample();           // 点击按钮时弹出菜单
+    void onSampleSelected(int index); // 用户选择了菜单中的某首歌
 
 protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
@@ -34,14 +34,32 @@ private:
     Visualizer* m_visualizer;
     RhythmGame* m_game;
     void toggleGameMode();
-    // ���ø�������
+    // 内置歌曲数据
     QStringList m_sampleNames;
     QStringList m_samplePaths;
-    // �����϶����
+
+    // 窗口拖动相关
     QWidget* m_titleBar = nullptr;
     bool m_dragging = false;
     QPoint m_dragStartPos;
     void setupTitleBar();
+
+    // 播放列表（仅内置歌曲）
+    QStringList m_playlist;
+    int m_currentPlayIndex = -1;
+    int m_playMode = 0;                 // 0=顺序循环, 1=单曲循环, 2=随机播放
+
+    // 提示文字动画
+    QLabel* m_hintLabel = nullptr;
+    QGraphicsOpacityEffect* m_hintEffect = nullptr;
+    QTimer* m_hintTimer = nullptr;
+    void showHint(const QString& text);
+
+    // 播放器控制函数
+    void playByIndex(int index);
+    void prevTrack();
+    void nextTrack();
+    void updateModeHint();
 };
 
 #endif // RHYTHMFLOW_H

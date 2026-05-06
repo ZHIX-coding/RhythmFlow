@@ -1,4 +1,4 @@
-#include "RhythmGame.h"
+﻿#include "RhythmGame.h"
 #include <QRandomGenerator>
 #include <cmath>
 
@@ -32,7 +32,7 @@ void RhythmGame::update(float dt)
 {
     if (!m_active) return;
     for (auto& note : m_notes) {
-        note.y += NOTE_SPEED * dt;
+        note.y += getCurrentSpeed() * dt;
         if (!note.isHit && note.y > MISS_Y) {
             emit noteMissed(note.track);
             note.isMissed = true;
@@ -79,4 +79,14 @@ void RhythmGame::pressKey(int track)
 void RhythmGame::releaseKey(int track)
 {
     Q_UNUSED(track);
+}
+
+float RhythmGame::getCurrentSpeed() const
+{
+    // 基础速度
+    float base = NOTE_SPEED;
+    // 连击数每超过20，速度增加20%
+    int comboLevel = m_combo / 25;          // 0, 1, 2, 3, 4, ...
+    float multiplier = 1.0f + comboLevel * 0.25f;
+    return base * multiplier;
 }
