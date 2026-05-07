@@ -148,10 +148,36 @@ RhythmFlow::RhythmFlow(QWidget* parent)
     gameTimer->start(16);
 
     // 内置歌曲列表（名称和 qrc 路径一一对应）
-    m_sampleNames << "Alex LeMirage - SOLANA_L"
-        << "Dionela _ Jay R - sining_L";
+    // 内置歌曲列表（名称和 qrc 路径一一对应）
+    m_sampleNames << "Alex LeMirage"
+        << "Dionela _ Jay R"
+        << "晴天"
+        << "稻香"
+        << "always online"
+        << "不潮不用花钱"
+        << "心墙"
+        << "黑夜问白天"
+        << "唯一"
+        << "泡沫"
+        << "倒数"
+        << "beauty and a beat"
+        << "As Long As You Love Me"
+        << "野人";
+
     m_samplePaths << "qrc:/RhythmFlow/resources/singing1.mp3"
-        << "qrc:/RhythmFlow/resources/singing2.mp3";
+        << "qrc:/RhythmFlow/resources/singing2.mp3"
+        << "qrc:/RhythmFlow/resources/singing3.mp3"
+        << "qrc:/RhythmFlow/resources/singing4.mp3"
+        << "qrc:/RhythmFlow/resources/singing5.mp3"
+        << "qrc:/RhythmFlow/resources/singing6.mp3"
+        << "qrc:/RhythmFlow/resources/singing7.mp3"
+        << "qrc:/RhythmFlow/resources/singing8.mp3"
+        << "qrc:/RhythmFlow/resources/singing9.mp3"
+        << "qrc:/RhythmFlow/resources/singing10.mp3"
+        << "qrc:/RhythmFlow/resources/singing11.mp3"
+        << "qrc:/RhythmFlow/resources/singing12.mp3"
+        << "qrc:/RhythmFlow/resources/singing13.mp3"
+        << "qrc:/RhythmFlow/resources/singing14.mp3";
 
     // 用内置歌曲初始化播放列表（仅一次）
     m_playlist = m_samplePaths;

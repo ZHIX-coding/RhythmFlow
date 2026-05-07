@@ -9,5 +9,17 @@
 		<file>resources/Pickup.wav</file>
 		<file>resources/singing1.mp3</file>
 		<file>resources/singing2.mp3</file>
+		<file>resources/singing3.mp3</file>
+		<file>resources/singing4.mp3</file>
+		<file>resources/singing5.mp3</file>
+		<file>resources/singing6.mp3</file>
+		<file>resources/singing7.mp3</file>
+		<file>resources/singing8.mp3</file>
+		<file>resources/singing9.mp3</file>
+		<file>resources/singing10.mp3</file>
+		<file>resources/singing11.mp3</file>
+		<file>resources/singing12.mp3</file>
+		<file>resources/singing13.mp3</file>
+		<file>resources/singing14.mp3</file>
 	</qresource>
 </RCC>
