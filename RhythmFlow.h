@@ -24,6 +24,7 @@ private slots:
     void onExitApp();
     void onPlaySample();           // 点击按钮时弹出菜单
     void onSampleSelected(int index); // 用户选择了菜单中的某首歌
+    void onShowHelp();   // 新增：显示帮助
 
 protected:
     void contextMenuEvent(QContextMenuEvent* event) override;

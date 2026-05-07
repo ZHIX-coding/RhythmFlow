@@ -10,6 +10,7 @@
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
 #include <QRandomGenerator>
+#include <QMessageBox>
 
 RhythmFlow::RhythmFlow(QWidget* parent)
     : QMainWindow(parent)
@@ -175,7 +176,8 @@ void RhythmFlow::contextMenuEvent(QContextMenuEvent* event)
         color: #ffffff;
     }
 )");
-
+    QAction* helpAction = menu.addAction("Help");
+    connect(helpAction, &QAction::triggered, this, &RhythmFlow::onShowHelp);
     QAction* exitAction = menu.addAction("Exit");
     connect(exitAction, &QAction::triggered, this, &RhythmFlow::onExitApp);
 
@@ -225,7 +227,11 @@ bool RhythmFlow::eventFilter(QObject* obj, QEvent* event)
     if (event->type() == QEvent::KeyPress) {
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->isAutoRepeat()) return true;
-
+        // F1 帮助
+        if (keyEvent->key() == Qt::Key_F1) {
+            onShowHelp();
+            return true;
+        }
         // ===== 播放器控制快捷键 =====
         switch (keyEvent->key()) {
         case Qt::Key_1: prevTrack(); showHint("Previous"); return true;
@@ -403,4 +409,33 @@ void RhythmFlow::updateModeHint()
     if (m_playMode == 0) showHint("All");
     else if (m_playMode == 1) showHint("One");
     else showHint("Shuffle");;
+}
+
+void RhythmFlow::onShowHelp()
+{
+    QString helpText = R"(
+操作说明：
+
+【音乐播放】
+  1  上一首
+  2  播放 / 暂停
+  3  下一首
+  4  切换播放模式（顺序/单曲/随机）
+
+【可视化】
+  鼠标左键点击：粒子聚拢 + 涟漪特效
+  拖动顶部区域：移动窗口
+  右键：菜单（退出 / 帮助）
+
+【游戏模式】
+  空格键：进入 / 退出游戏
+  D / F / J / K：击打音符（对应 4 条轨道）
+  连击越高，下落速度越快
+
+【其他】
+  F1：显示此帮助
+  exit：右键退出程序
+)";
+
+    QMessageBox::information(this, "RhythmFlow Help", helpText);
 }

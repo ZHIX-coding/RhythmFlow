@@ -92,35 +92,6 @@ void Visualizer::paintEvent(QPaintEvent* event)
         grad.setColorAt(0.6, QColor(180, 255, 255, alpha1));
         grad.setColorAt(1, QColor(255, 255, 255, alpha2));
 
-        // ===== 柱顶发光粒子 =====
-        if (barHeight > 30) {  // 柱子足够高才显示粒子
-            // 根据能量决定粒子数量
-            int particleCount = static_cast<int>(energy / 15.0f);
-            particleCount = qBound(8, particleCount, 16);
-
-            // 柱顶中心X坐标
-            float topX = i * barWidth + barWidth / 2.0f;
-            float topY = height() - barHeight;
-
-            for (int j = 0; j < particleCount; ++j) {
-                // 随机偏移（散落在柱顶周围）
-                float offsetX = (QRandomGenerator::global()->generateDouble() - 0.5f) * barWidth * 1.2f;
-                float offsetY = (QRandomGenerator::global()->generateDouble() - 0.5f) * 20.0f;
-
-                // 粒子颜色：柱顶白色，带随机透明度
-                int alpha = 120 + QRandomGenerator::global()->bounded(95);
-                QColor particleCol(255, 255, 255, alpha);
-
-                // 粒子大小：1.5~3.5像素
-                float radius =1.0f + QRandomGenerator::global()->generateDouble() * 1.0f;
-
-                // 绘制小圆点（光点）
-                painter.setBrush(particleCol);
-                painter.setPen(Qt::NoPen);
-                painter.drawEllipse(QPointF(topX + offsetX, topY + offsetY), radius, radius);
-            }
-        }
-
         painter.fillRect(i * barWidth, height() - barHeight,
             barWidth - 2, barHeight, grad);
     }
@@ -256,6 +227,10 @@ void Visualizer::updateParticles()
         p.vx *= damping;
         p.vy *= damping;
 
+        // 记录上一帧位置（用于运动轨迹）
+        p.prevX = p.x;
+        p.prevY = p.y;
+
         p.x += p.vx;
         p.y += p.vy;
 
@@ -323,8 +298,26 @@ void Visualizer::drawParticles(QPainter& painter)
 
         float screenX = p.x * width();
         float screenY = p.y * height();
-        float radius = baseSize * (0.7f + 0.5f * t);
+		float radius = baseSize * (0.5f + bassEnergy / 60.0f);  
+        
+        // ===== 粒子运动轨迹 =====
+        float prevScreenX = p.prevX * width();
+        float prevScreenY = p.prevY * height();
+        float dx = screenX - prevScreenX;
+        float dy = screenY - prevScreenY;
+        float dist = sqrt(dx * dx + dy * dy);
 
+        // 只有移动距离大于 0.5 像素且小于 15 像素时才绘制轨迹
+        // （太短没有意义，太长说明异常跳跃，不画）
+        if (dist > 0.5f && dist < 15.0f) {
+            // 轨迹颜色：比粒子本身更透明
+            QColor trailColor(r, g, b, a * 0.3f);
+            QPen trailPen(trailColor, radius * 0.6f);  // 线条比粒子稍细
+            painter.setPen(trailPen);
+            painter.drawLine(QPointF(prevScreenX, prevScreenY),
+                QPointF(screenX, screenY));
+        }
+        
         QRadialGradient grad(screenX, screenY, radius);
         grad.setColorAt(0.0, particleColor);
         grad.setColorAt(0.6, QColor(r, g, b, a * 0.4));
@@ -493,14 +486,14 @@ void Visualizer::onNoteHit(int track, float y, int grade)
     float sy = y * height();
 
     // 1. 击中特效（图片）放在音符位置
-    m_hitEffects.push_back({ sx, sy, HitEffect::HitImage, 0.2f });
+    m_hitEffects.push_back({ sx, sy, HitEffect::HitImage, 0.15f });
 
     // 2. 判定文字放在该轨道的判定线稍上方
     float hitYPos = height() * 0.74f;
     float textX = sx;
     float textY = hitYPos - 50;   // 判定线上方50像素
     HitEffect::Type textType = (grade == 0) ? HitEffect::TextPerfect : HitEffect::TextGood;
-    m_hitEffects.push_back({ textX, textY, textType, 0.3f });
+    m_hitEffects.push_back({ textX, textY, textType, 0.25f });
 }
 
 void Visualizer::onNoteMissed(int track)
@@ -512,7 +505,7 @@ void Visualizer::onNoteMissed(int track)
     float hitYPos = height() * 0.74f;
     float textX = sx;
     float textY = hitYPos - 50;
-    m_hitEffects.push_back({ textX, textY, HitEffect::TextMiss, 0.3f });
+    m_hitEffects.push_back({ textX, textY, HitEffect::TextMiss, 0.25f });
 }
 
 void Visualizer::onComboChanged(int combo)

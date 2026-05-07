@@ -40,6 +40,7 @@ private:
         float x, y;
         float vx, vy;
         float life;
+        float prevX = 0.0f, prevY = 0.0f;  // 上一帧位置
     };
     std::vector<Particle> m_particles;
     QTimer* m_particleTimer = nullptr;
