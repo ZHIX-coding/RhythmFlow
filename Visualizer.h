@@ -9,12 +9,14 @@
 
 class RhythmGame;
 
+// Visualizer：可视化绘制类
+// 负责频谱柱子、粒子系统、涟漪特效、游戏界面绘制、判定特效
 class Visualizer : public QWidget
 {
     Q_OBJECT
 public:
-    static constexpr int BAR_COUNT = 64;
-    static constexpr float BAR_HEIGHT_SCALE = 3.0f;
+    static constexpr int BAR_COUNT = 64;             // 频谱柱数量
+    static constexpr float BAR_HEIGHT_SCALE = 3.0f;  // 柱子高度系数
 
     explicit Visualizer(QWidget* parent = nullptr);
     ~Visualizer() = default;
@@ -36,15 +38,17 @@ protected:
 private:
     std::vector<float> m_spectrum;
 
+    // 粒子结构体
     struct Particle {
         float x, y;
         float vx, vy;
         float life;
-        float prevX = 0.0f, prevY = 0.0f;  // 上一帧位置
+        float prevX = 0.0f, prevY = 0.0f;   // 上一帧位置（轨迹）
     };
     std::vector<Particle> m_particles;
     QTimer* m_particleTimer = nullptr;
 
+    // 鼠标交互
     bool m_mousePressed = false;
     QPointF m_mousePos = QPointF(0.5, 0.35);
     QPointF m_currentAttractor = QPointF(0.5, 0.35);
@@ -54,19 +58,22 @@ private:
     void updateParticles();
     void drawParticles(QPainter& painter);
 
+    // 游戏相关
     RhythmGame* m_game = nullptr;
     void drawGame(QPainter& painter);
 
+    // 音符素材
     QPixmap m_pixNoteNormal;
     QPixmap m_pixNoteStrong;
     bool m_useImageNotes = false;
 
+    // 特效系统
     struct HitEffect {
         float x, y;
-        enum Type { HitImage, TextPerfect, TextGood, TextMiss, ComboText }; // 新增 ComboText
+        enum Type { HitImage, TextPerfect, TextGood, TextMiss, ComboText };
         Type type;
         float lifetime;
-        int combo = 0; // 用于 ComboText 类型，存储当前连击数
+        int combo = 0;
     };
     std::vector<HitEffect> m_hitEffects;
     QPixmap m_pixHitEffect;
@@ -83,13 +90,13 @@ private:
 
     // 涟漪特效
     struct Ripple {
-        float x, y;        // 屏幕坐标
-        float radius;      // 当前半径
-        float maxRadius;   // 最大半径
-        float lifetime;    // 剩余生命（秒）
-        float maxLifetime; // 总生命（秒）
+        float x, y;
+        float radius;
+        float maxRadius;
+        float lifetime;
+        float maxLifetime;
     };
     std::vector<Ripple> m_ripples;
 };
 
-#endif // VISUALIZER_H#pragma once
+#endif // VISUALIZER_H
