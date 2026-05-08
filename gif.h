@@ -1,4 +1,4 @@
-//
+﻿//
 // gif.h
 // by Charlie Tangora
 // Public domain.
