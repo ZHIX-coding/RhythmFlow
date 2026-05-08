@@ -105,6 +105,7 @@
     <ClInclude Include="..\..\..\Github\kissfft-master\kissfft-master\kiss_fft.h" />
     <ClInclude Include="..\..\..\Github\kissfft-master\kissfft-master\kiss_fft_log.h" />
     <ClInclude Include="..\..\..\Github\kissfft-master\kissfft-master\_kiss_fft_guts.h" />
+    <ClInclude Include="gif.h" />
     <QtMoc Include="AudioEngine.h" />
     <QtMoc Include="RhythmGame.h" />
     <QtMoc Include="Visualizer.h" />

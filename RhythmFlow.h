@@ -11,6 +11,9 @@
 #include "AudioEngine.h"
 #include "Visualizer.h"
 #include "RhythmGame.h"
+#include <QStandardPaths>
+#include <QDir>
+#include <QDateTime>
 
 class RhythmFlow : public QMainWindow
 {
@@ -61,6 +64,17 @@ private:
     void prevTrack();
     void nextTrack();
     void updateModeHint();
+
+    // GIF 录制
+    QTimer* m_recordTimer = nullptr;
+    bool m_isRecording = false;
+    void* m_gifWriter = nullptr;   // 指向 GifWriter 实例
+    int m_recordFrameCount = 0;
+    QString m_recordFilePath;
+    int m_recordTotalFrames = 0;
+    void startRecording();
+    void stopRecording();
+    void toggleRecording();
 };
 
 #endif // RHYTHMFLOW_H

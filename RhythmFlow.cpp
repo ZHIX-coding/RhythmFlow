@@ -11,6 +11,7 @@
 #include <QGraphicsOpacityEffect>
 #include <QRandomGenerator>
 #include <QMessageBox>
+#include "gif.h"
 
 RhythmFlow::RhythmFlow(QWidget* parent)
     : QMainWindow(parent)
@@ -182,6 +183,22 @@ RhythmFlow::RhythmFlow(QWidget* parent)
     // 用内置歌曲初始化播放列表（仅一次）
     m_playlist = m_samplePaths;
     m_currentPlayIndex = -1;
+
+    // GIF 录制定时器 (12fps)
+    m_recordTimer = new QTimer(this);
+    m_recordTimer->setInterval(83);
+    connect(m_recordTimer, &QTimer::timeout, this, [this]() {
+        if (!m_isRecording || !m_gifWriter) return;
+        GifWriter* w = static_cast<GifWriter*>(m_gifWriter);
+        QPixmap pix = m_visualizer->grab().scaled(480, 360,
+            Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        QImage img = pix.toImage().convertToFormat(QImage::Format_RGBA8888);
+        GifWriteFrame(w, img.constBits(), 480, 360, 10);
+        m_recordFrameCount++;
+        if (m_recordFrameCount >= m_recordTotalFrames) {
+            stopRecording();
+        }
+        });
 }
 
 void RhythmFlow::contextMenuEvent(QContextMenuEvent* event)
@@ -272,9 +289,10 @@ bool RhythmFlow::eventFilter(QObject* obj, QEvent* event)
             else if (m_playMode == 1) showHint("One");
             else showHint("Shuffle");
             return true;
-        default: break;
+        case Qt::Key_R:
+            toggleRecording();
+            return true;
         }
-
         // 空格切换游戏模式
         if (keyEvent->key() == Qt::Key_Space) {
             toggleGameMode();
@@ -464,4 +482,50 @@ void RhythmFlow::onShowHelp()
 )";
 
     QMessageBox::information(this, "RhythmFlow Help", helpText);
+}
+
+void RhythmFlow::startRecording()
+{
+    if (m_isRecording) return;
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    m_recordFilePath = desktop + "/RhythmFlow_" + timestamp + ".gif";
+
+    m_gifWriter = new GifWriter;
+    GifWriter* w = static_cast<GifWriter*>(m_gifWriter);
+    if (!GifBegin(w, m_recordFilePath.toUtf8().constData(), 480, 360, 10)) {
+        delete w;
+        m_gifWriter = nullptr;
+        showHint("GIF Error");
+        return;
+    }
+
+    m_recordFrameCount = 0;
+    m_recordTotalFrames = 60; // 12fps * 5秒
+    m_isRecording = true;
+    m_recordTimer->start();
+    showHint("Recording...");
+}
+
+void RhythmFlow::stopRecording()
+{
+    if (!m_isRecording || !m_gifWriter) return;
+    m_recordTimer->stop();
+    GifWriter* w = static_cast<GifWriter*>(m_gifWriter);
+    GifEnd(w);
+    delete w;
+    m_gifWriter = nullptr;
+    m_isRecording = false;
+    showHint("GIF saved");
+}
+
+void RhythmFlow::toggleRecording()
+{
+    if (m_isRecording) {
+        stopRecording();
+    }
+    else {
+        startRecording();
+    }
 }
