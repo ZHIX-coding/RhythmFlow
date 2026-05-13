@@ -80,7 +80,7 @@ void RhythmGame::pressKey(int track)
     }
 }
 
-// 松开按键（预留长按功能）
+// 松开按键
 void RhythmGame::releaseKey(int track)
 {
     Q_UNUSED(track);

@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 	ProjectSection(SolutionItems) = preProject
 		LICENSE.txt = LICENSE.txt
 		README.md = README.md
+		高级语言程序设计实验报告.pdf = 高级语言程序设计实验报告.pdf
 	EndProjectSection
 EndProject
 Global
